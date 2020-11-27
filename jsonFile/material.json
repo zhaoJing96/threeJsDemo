@@ -1,0 +1,22 @@
+{
+	"metadata": {
+		"version": 4.5,
+		"type": "Material",
+		"generator": "Material.toJSON"
+	},
+	"uuid": "262D07D0-BDD6-466C-8D96-399B91C3E53F",
+	"type": "MeshLambertMaterial",
+	"color": 16777215,
+	"emissive": 0,
+	"depthFunc": 3,
+	"depthTest": true,
+	"depthWrite": true,
+	"stencilWrite": false,
+	"stencilWriteMask": 255,
+	"stencilFunc": 519,
+	"stencilRef": 0,
+	"stencilFuncMask": 255,
+	"stencilFail": 7680,
+	"stencilZFail": 7680,
+	"stencilZPass": 7680
+}

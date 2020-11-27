@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebGL渲染器</title>
+</head>
+<style>
+    body {
+        margin: 0;
+        overflow: hidden;
+    }
+
+    canvas {
+        width: 100%;
+        height: 100%
+    }
+</style>
+
+<body>
+    <script src="./node/three.js"></script>
+    <script src="./node/OrbitControls.js"></script>
+    <script>
+        let scene = new THREE.Scene();
+        let width = window.innerWidth;
+        let height = window.innerHeight;
+        let k = width / height;
+        let s = 150;
+        let camera = new THREE.OrthographicCamera(-s * k, s * k, s, -s, 1, 1000);
+        // 创建一个webGL对象
+        let renderer = new THREE.WebGLRenderer();
+        // 设置渲染区域尺寸
+        renderer.setSize(width, height);
+        document.body.appendChild(renderer.domElement);
+
+        // 用相机渲染一个场景
+        renderer.render(scene,camera);
+
+    </script>
+</body>
+
+</html>

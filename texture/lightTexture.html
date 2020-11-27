@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>光照贴图 texture</title>
+</head>
+<style>
+    body {
+        margin: 0;
+        overflow: hidden;
+    }
+
+    canvas {
+        width: 100%;
+        height: 100%
+    }
+</style>
+
+<body>
+    <script src="../node/three.js"></script>
+    <script src="../node/OrbitControls.js"></script>
+    <script>
+        // 创建一个场景
+        let scene = new THREE.Scene();
+
+        // 创建一个几何对象Geometry
+        let geometry = new THREE.BoxGeometry(50, 50, 50);
+        // 材质
+        let material = new THREE.MeshLambertMaterial({
+            color: 0x00ff00
+        });
+        // 创建模型
+        let mesh = new THREE.Mesh(geometry, material);
+        // 设置产生投影的网格模型，用来设置一个模型对象是否在光照下产生投影效果
+        mesh.castShadow = true;
+        mesh.position.set(4, 30, -75)
+        scene.add(mesh);
+
+        // 创建一个平面几何体
+        let planeGeometry = new THREE.PlaneGeometry(300, 300);
+
+        let textureLoader = new THREE.TextureLoader();
+        let texture = textureLoader.load('./images/normal.jpg');
+        // let lightTexture = textureLoader.load('./images/img4.png');
+        let textureSpecular = textureLoader.load('./images/normal.jpg');
+
+        // let planeMaterial = new THREE.MeshPhongMaterial({
+        //     color: 0x999999,
+        //     map: texture,
+        //     lightMap: lightTexture
+        // });
+        let planeMaterial = new THREE.MeshPhongMaterial({
+            // color: 0x999999,
+            map: texture,
+            // lightMap: lightTexture,
+            shininess: 60,//高光部分的亮度，默认30
+            specularMap: textureSpecular, //高光贴图
+        });
+        planeGeometry.faceVertexUvs[1] = planeGeometry.faceVertexUvs[0];
+
+        let planeMesh = new THREE.Mesh(planeGeometry, planeMaterial);
+        planeMesh.rotateX(-Math.PI / 2); //绕X轴旋转90度
+        // 设置接收阴影的投影面
+        planeMesh.receiveShadow = true;
+        scene.add(planeMesh);
+
+        // 设置平行光源
+        let directionalLight = new THREE.DirectionalLight(0xffffff, 1)
+        directionalLight.position.set(-250, 1000, -800);
+        directionalLight.castShadow = true; // 允许生成阴影
+        directionalLight.target = mesh;
+        scene.add(directionalLight);
+
+        // 相机
+        let width = window.innerWidth; // 窗体宽度
+        let height = window.innerHeight; // 窗体高度
+        let k = width / height; // 宽高比
+        let s = 200; // 三维场景显示范围控制系数，系数越大，显示的范围越大
+        let camera = new THREE.OrthographicCamera(-s * k, s * k, s, -s, 1, 1000);
+        camera.position.set(0, 300, -300); // 设置相机位置
+        camera.lookAt(scene.position); // 设置相机方向(指向的场景对象)
+
+        let renderer = new THREE.WebGLRenderer();
+        renderer.setSize(width, height);
+        renderer.setClearColor(0xffffff, 1) //设置背景颜色
+        renderer.shadowMap.enabled = true; //设置阴影
+        document.body.appendChild(renderer.domElement);
+        // 渲染到HTML文档中
+        function renderFn() {
+            renderer.render(scene, camera); // 渲染到场景中
+            requestAnimationFrame(renderFn);
+        }
+        renderFn()
+    </script>
+</body>
+
+</html>

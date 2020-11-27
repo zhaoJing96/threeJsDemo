@@ -1,0 +1,301 @@
+        <!DOCTYPE html>
+        <html lang="en">
+
+        <head>
+            <meta charset="UTF-8">
+            <title>第一个three.js文件_WebGL三维场景</title>
+            <style>
+                body {
+                    margin: 0;
+                    overflow: hidden;
+                    /* 隐藏body窗口区域滚动条 */
+                }
+            </style>
+            <!--引入three.js三维引擎-->
+            <script src="./node/three.js"></script>
+            <script src="./node/OrbitControls.js"></script>
+        </head>
+        <style>
+            #container {
+                width: 100%;
+                height: 1000px;
+                border: 1px solid #e5e5e5;
+            }
+        </style>
+
+        <body>
+            <div>
+                <button id='drawPolygon'>绘制多边形</button>
+                <div id='container'></div>
+            </div>
+            <script>
+                /**
+                 * 创建场景对象Scene
+                 */
+                let scene = new THREE.Scene();
+                /**
+                 * 创建网格模型
+                 */
+                let geometry = new THREE.BoxGeometry(150, 2, 150);
+                var material = new THREE.MeshLambertMaterial({
+                    color: 0x778899,
+                    side: THREE.DoubleSide
+                }); //材质对象Material
+                var mesh = new THREE.Mesh(geometry, material); //网格模型对象Mesh
+                mesh.userData.name = 'plane';
+                scene.add(mesh); //网格模型添加到场景中
+
+                // 添加轴线
+                var axisHelper = new THREE.AxisHelper(250);
+                scene.add(axisHelper);
+
+                /**
+                 * 光源设置
+                 */
+                //点光源
+                var point = new THREE.DirectionalLight(0xffffff, 1.5);
+                point.position.set(200, 200, 100); //点光源位置
+                scene.add(point); //点光源添加到场景中
+                //环境光
+                var ambient = new THREE.AmbientLight(0x444444);
+                scene.add(ambient);
+                /**
+                 * 相机设置
+                 */
+                let container = document.getElementById('container');
+                var width = container.offsetWidth; //窗口宽度
+                var height = container.offsetHeight; //窗口高度
+                var k = width / height; //窗口宽高比
+                //创建相机对象
+                var camera = new THREE.PerspectiveCamera(45, k, 1, 500);
+                camera.position.set(200, 300, 200); //设置相机位置
+                camera.lookAt(scene.position); //设置相机方向(指向的场景对象)
+                /**
+                 * 创建渲染器对象
+                 */
+                var renderer = new THREE.WebGLRenderer({
+                    antialias: true
+                });
+                renderer.setSize(width, height); //设置渲染区域尺寸
+                renderer.setClearColor(0xb9d3ff, 1); //设置背景颜色
+                container.appendChild(renderer.domElement); //body元素中插入canvas对象
+                //- 渲染函数
+                function render() {
+                    //执行渲染操作   指定场景、相机作为参数
+                    renderer.render(scene, camera);
+                    requestAnimationFrame(render)
+                }
+                render();
+                // 窗体改变
+                window.addEventListener('resize', () => {
+                    camera.aspect = window.innerWidth / window.innerHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(window.innerWidth, window.innerHeight);
+                    render();
+                }, false);
+
+                //- 添加鼠标对视觉相机的操作
+                let controls = new THREE.OrbitControls(camera, renderer.domElement);
+                //监听鼠标事件，触发渲染函数，更新canvas画布渲染效果
+                controls.addEventListener('change', render, {
+                    passive: true
+                });
+
+                // 获取与射线相交的对象数组
+                function getIntersects(event) {
+                    // 声明 raycaster 和 mouse 变量
+                    var raycaster = new THREE.Raycaster();
+                    var mouse = new THREE.Vector2();
+                    // 通过鼠标点击位置,计算出 raycaster 所需点的位置,以屏幕为中心点,范围 -1 到 1
+                    mouse.x = (event.clientX / container.offsetWidth) * 2 - 1;
+                    mouse.y = -(event.clientY / container.offsetHeight) * 2 + 1;
+                    //通过鼠标点击的位置(二维坐标)和当前相机的矩阵计算出射线位置
+                    raycaster.setFromCamera(mouse, camera);
+                    // 获取与raycaster射线相交的数组集合，其中的元素按照距离排序，越近的越靠前
+                    var intersects = raycaster.intersectObjects(scene.children);
+                    if (intersects.length >= 1) {
+                        let selectItem = intersects.find(item => {
+                            if (item.object.userData && item.object.userData.name === 'plane') {
+                                return item;
+                            }
+                        });
+                        if (selectItem) {
+                            return selectItem.point;
+                        } else {
+                            return null;
+                        }
+                    } else {
+                        return null;
+                    }
+                }
+
+                let drawPolygon = document.getElementById('drawPolygon');
+                drawPolygon.addEventListener('click', startDrawPolygon, false);
+
+                // 点击绘制多边形，定义点击开始，双击结束绘制
+                function startDrawPolygon() {
+                    console.log('点击了绘制多边形');
+                    container.addEventListener('click', onClickHandle, false);
+                    container.addEventListener('dblclick', stopDrawPloygon, false)
+                }
+
+                let pointArr = [];
+
+                // 绘制多边形
+                function onClickHandle(event) {
+                    container.removeEventListener('mousemove', null, false);
+                    // 获取点击几何对象的点
+                    let vector = getIntersects({
+                        clientX: event.x,
+                        clientY: event.y
+                    });
+                    if (vector) {
+                        pointArr.push(vector);
+                    }
+                    // 绘制点
+                    drawPoint();
+                    // 绘制射线
+                    // container.addEventListener('mousemove', drawRay, false);
+                    // 绘制线
+                    drawLine();
+                }
+                // 绘制点
+                function drawPoint() {
+                    let pointGeometry = new THREE.Geometry();
+                    pointArr.map(item => {
+                        pointGeometry.vertices.push(item);
+                    });
+                    let pointMaterial = new THREE.PointsMaterial({
+                        color: 0xffa500,
+                        size: 5
+                    });
+                    let pointField = new THREE.Points(pointGeometry, pointMaterial);
+                    pointField.userData.name = 'pointField';
+                    scene.add(pointField);
+                }
+
+                // 绘制跟随鼠标移动的射线
+                function drawRay(event) {
+                    let currentVector = getIntersects({
+                        clientX: event.x,
+                        clientY: event.y
+                    });
+                    if (!currentVector) {
+                        return;
+                    }
+                    let movingLineGeometry = new THREE.Geometry();
+                    let materail = new THREE.MeshBasicMaterial({
+                        color: 0x8a2be2,
+                        side: THREE.DoubleSide
+                    });
+                    let movingLine = new THREE.Line(movingLineGeometry, materail);
+                    movingLine.userData.name = 'movingRay';
+                    scene.add(movingLine);
+                    movingLineGeometry.vertices = [];
+                    movingLineGeometry.vertices.push(pointArr[pointArr.length - 1]);
+                    movingLineGeometry.vertices.push(currentVector);
+                    movingLineGeometry.verticesNeedUpdate = true;
+                }
+
+                // 绘制线
+                function drawLine() {
+                    let lineGeometry = new THREE.Geometry();
+                    for (let i = 0; i < pointArr.length; i++) {
+                        const element = pointArr[i];
+                        lineGeometry.vertices.push(element);
+                    }
+                    let lineMaterial = new THREE.MeshBasicMaterial({
+                        color: 0x00bfff,
+                        side: THREE.DoubleSide
+                    });
+                    let line = new THREE.Line(lineGeometry, lineMaterial);
+                    line.userData.name = 'lineField'
+                    scene.add(line);
+                }
+
+                // 双击结束绘制
+                function stopDrawPloygon() {
+                    console.log('鼠标双击了，结束绘制');
+                    generatePloygon();
+                }
+                //画墙
+                function drawWall(objs) {
+                    //长度
+                    let lens = Math.sqrt(Math.pow((Number(objs.eZ) - Number(objs.sZ)), 2) + Math.pow((Number(objs.eX) -
+                        Number(objs.sX)), 2));
+                    //位置
+                    let posx = (objs.eX + objs.sX) / 2;
+                    let posz = (objs.eZ + objs.sZ) / 2;
+                    //旋转角度
+                    let rotate = -Math.atan2((objs.eZ - objs.sZ), (objs.eX - objs.sX));
+                    let box = new THREE.CubeGeometry(lens, 15, 2); //- 墙体参数
+                    var material = new THREE.MeshBasicMaterial({
+                        color: 0xe04747,
+                        transparent: true,
+                        opacity: 0.4
+                    });
+                    var mesh = new THREE.Mesh(box, material);
+                    mesh.position.set(posx, 15 / 2, posz);
+                    mesh.rotation.y = rotate;
+                    scene.add(mesh);
+                    render();
+                }
+                // 绘制多边形
+                function generatePloygon() {
+                    // 点绘制成线
+                    let shapeBoxGeometry = new THREE.Geometry();
+                    shapeBoxGeometry.vertices = pointArr;
+                    // 定义法向量
+                    let = normal = new THREE.Vector3(0, 0, 1);
+                    for (let j = 0; j < pointArr.length - 1; j++) {
+                        geometry.faces.push(new THREE.Face3(j, j + 1, 0, normal));
+                    }
+                    for (let i = 0; i < shapeBoxGeometry.vertices.length; i++) {
+                        if (i !== shapeBoxGeometry.vertices.length - 1) {
+                            let params = {
+                                eZ: shapeBoxGeometry.vertices[i + 1].z,
+                                sZ: shapeBoxGeometry.vertices[i].z,
+                                eX: shapeBoxGeometry.vertices[i + 1].x,
+                                sX: shapeBoxGeometry.vertices[i].x
+                            }
+                            drawWall(params)
+                        }
+                    }
+                    let shapeBoxMaterial = new THREE.LineBasicMaterial({
+                        color: 0xff0000,
+                        linewidth: 10
+                    });
+                    let shapeBoxMesh = new THREE.LineLoop(shapeBoxGeometry, shapeBoxMaterial);
+
+                    // 根据绘制的点，来定义一个二维形状平面
+                    let shape = new THREE.Shape();
+                    shape.moveTo(pointArr[0].x, pointArr[0].z);
+                    for (let i = 1; i < pointArr.length; i++) {
+                        const element = pointArr[i];
+                        shape.lineTo(pointArr[i].x, pointArr[i].z);
+                    }
+                    shape.autoClose = true;
+                    // 从一个或多个路径形状中创建一个单面多边形几何体。
+                    let shapeGeometry = new THREE.ShapeBufferGeometry(shape, 25);
+                    let shapeMaterial = new THREE.MeshBasicMaterial({
+                        color: 0xffa500,
+                        side: THREE.DoubleSide,
+                        transparent: true,
+                        opacity: 0.5
+                    });
+                    let shapeMesh = new THREE.Mesh(shapeGeometry, shapeMaterial);
+                    shapeMesh.rotateX(Math.PI / 2);
+                    shapeMesh.position.set(0, 2, 0);
+
+                    let group = new THREE.Group();
+                    group.add(shapeMesh);
+                    group.add(shapeBoxMesh);
+                    scene.add(group);
+                    pointArr = [];
+                    // 绘制完成移除点击事件
+                    container.removeEventListener('click', onClickHandle, false);
+                }
+            </script>
+        </body>
+
+        </html>

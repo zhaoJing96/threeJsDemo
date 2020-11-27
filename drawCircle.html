@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>第一个three.js文件_WebGL三维场景</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            /* 隐藏body窗口区域滚动条 */
+        }
+    </style>
+    <!--引入three.js三维引擎-->
+    <script src="./node/three.js"></script>
+    <script src="./node/OrbitControls.js"></script>
+</head>
+<style>
+    #container {
+        width: 100%;
+        height: 1000px;
+        border: 1px solid #e5e5e5;
+    }
+</style>
+
+<body>
+    <div>
+        <button id='drawCircle'>绘制圆形</button>
+        <div id='container'></div>
+    </div>
+    <script>
+        /**
+         * 创建场景对象Scene
+         */
+        let scene = new THREE.Scene();
+        /**
+         * 创建网格模型
+         */
+        let geometry = new THREE.BoxGeometry(150, 2, 150);
+        var material = new THREE.MeshLambertMaterial({
+            color: 0x778899,
+            side: THREE.DoubleSide
+        }); //材质对象Material
+        var mesh = new THREE.Mesh(geometry, material); //网格模型对象Mesh
+        mesh.userData.name = 'plane';
+        scene.add(mesh); //网格模型添加到场景中
+
+        // 添加轴线
+        var axisHelper = new THREE.AxisHelper(250);
+        scene.add(axisHelper);
+
+        /**
+         * 光源设置
+         */
+        //点光源
+        var point = new THREE.DirectionalLight(0xffffff, 1.5);
+        point.position.set(200, 200, 100); //点光源位置
+        scene.add(point); //点光源添加到场景中
+        //环境光
+        var ambient = new THREE.AmbientLight(0x444444);
+        scene.add(ambient);
+        /**
+         * 相机设置
+         */
+        let container = document.getElementById('container');
+        var width = container.offsetWidth; //窗口宽度
+        var height = container.offsetHeight; //窗口高度
+        var k = width / height; //窗口宽高比
+        //创建相机对象
+        var camera = new THREE.PerspectiveCamera(45, k, 1, 500);
+        camera.position.set(200, 300, 200); //设置相机位置
+        camera.lookAt(scene.position); //设置相机方向(指向的场景对象)
+        /**
+         * 创建渲染器对象
+         */
+        var renderer = new THREE.WebGLRenderer({
+            antialias: true
+        });
+        renderer.setSize(width, height); //设置渲染区域尺寸
+        renderer.setClearColor(0xb9d3ff, 1); //设置背景颜色
+        container.appendChild(renderer.domElement); //body元素中插入canvas对象
+        //- 渲染函数
+        function render() {
+            //执行渲染操作   指定场景、相机作为参数
+            renderer.render(scene, camera);
+            requestAnimationFrame(render)
+        }
+        render();
+        // 窗体改变
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            render();
+        }, false);
+
+        //- 添加鼠标对视觉相机的操作
+        let controls = new THREE.OrbitControls(camera, renderer.domElement);
+        //监听鼠标事件，触发渲染函数，更新canvas画布渲染效果
+        controls.addEventListener('change', render, {
+            passive: true
+        });
+
+        // 获取与射线相交的对象数组
+        function getIntersects(event) {
+            // 声明 raycaster 和 mouse 变量
+            var raycaster = new THREE.Raycaster();
+            var mouse = new THREE.Vector2();
+            // 通过鼠标点击位置,计算出 raycaster 所需点的位置,以屏幕为中心点,范围 -1 到 1
+            mouse.x = (event.clientX / container.offsetWidth) * 2 - 1;
+            mouse.y = -(event.clientY / container.offsetHeight) * 2 + 1;
+            //通过鼠标点击的位置(二维坐标)和当前相机的矩阵计算出射线位置
+            raycaster.setFromCamera(mouse, camera);
+            // 获取与raycaster射线相交的数组集合，其中的元素按照距离排序，越近的越靠前
+            var intersects = raycaster.intersectObjects(scene.children);
+            if (intersects.length >= 1) {
+                let selectItem = intersects.find(item => {
+                    if (item.object.userData && item.object.userData.name === 'plane') {
+                        return item;
+                    }
+                });
+                if (selectItem) {
+                    return selectItem.point;
+                } else {
+                    return null;
+                }
+            } else {
+                return null;
+            }
+        }
+
+        let drawCircle = document.getElementById('drawCircle');
+        drawCircle.addEventListener('click', startDrawCircle, false);
+
+        // 点击绘制多边形，定义点击开始，双击结束绘制
+        function startDrawCircle() {
+            console.log('点击了绘制圆形');
+            container.addEventListener('click', onClickHandle, false);
+            container.addEventListener('dblclick', stopDrawCircle, false)
+        }
+
+        let pointArr = [];
+
+        // 绘制圆形，获取中心点
+        function onClickHandle(event) {
+            container.removeEventListener('mousemove', null, false);
+            // 获取点击几何对象的点
+            let vector = getIntersects({
+                clientX: event.x,
+                clientY: event.y
+            });
+            if (vector) {
+                pointArr.push(vector);
+            }
+            // 绘制点
+            drawPoint();
+            container.addEventListener('mousemove', processDraw, false);
+        }
+        // 绘制点
+        function drawPoint() {
+            let pointGeometry = new THREE.Geometry();
+            pointArr.map(item => {
+                pointGeometry.vertices.push(item);
+            });
+            let pointMaterial = new THREE.PointsMaterial({
+                color: 0xffa500,
+                size: 5
+            });
+            let pointField = new THREE.Points(pointGeometry, pointMaterial);
+            pointField.userData.name = 'pointField';
+            scene.add(pointField);
+        }
+
+        // 双击结束绘制
+        function stopDrawCircle() {
+            console.log('鼠标双击了，结束绘制');
+            if (pointArr.length > 0) {
+                let fristPoint = pointArr[0];
+                let lastPoint = pointArr[pointArr.length - 1];
+                let distance = fristPoint.distanceTo(lastPoint);
+                // 鼠标双击绘制，移除鼠标移动绘制图形
+                scene.children.forEach(item => {
+                    if (item.userData.name === 'moveCircle') {
+                        scene.remove(item);
+                    }
+                });
+                generateCircle(distance, fristPoint, 'dblCircle');
+            }
+            // 结束绘制移除鼠标移动事件
+            container.removeEventListener('mousemove', processDraw, false);
+        }
+        // 过程绘制圆形
+        function processDraw(event) {
+            // 鼠标移动事件、移除上一个几何对象
+            scene.children.forEach(item => {
+                if (item.userData.name === 'moveCircle') {
+                    scene.remove(item);
+                }
+            });
+            // 获取点击几何对象的点
+            let vector = getIntersects({
+                clientX: event.x,
+                clientY: event.y
+            });
+            if (vector) {
+                pointArr.push(vector);
+            }
+            let fristPoint = pointArr[0];
+            let lastPoint = pointArr[pointArr.length - 1];
+            let distance = fristPoint.distanceTo(lastPoint);
+            generateCircle(distance, fristPoint, 'moveCircle');
+        }
+        // 绘制圆形
+        function generateCircle(distance, center, type) {
+            let circleGeometry = new THREE.CircleGeometry(distance, 32);
+            let material = new THREE.MeshBasicMaterial({
+                color: 0xffff00,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.5
+            });
+            let circle = new THREE.Mesh(circleGeometry, material);
+            // 判断是鼠标移动绘制还是双击绘制
+            if (type === 'dblCircle') {
+                circle.userData.name = 'dblCircle';
+            } else {
+                circle.userData.name = 'moveCircle';
+            }
+
+            // 设置圆心坐标
+            circle.position.x = center.x;
+            circle.position.y = center.y + 1;
+            circle.position.z = center.z;
+            circle.rotateX(Math.PI / 2);
+            scene.add(circle);
+            container.removeEventListener('click', onClickHandle, false);
+        }
+    </script>
+</body>
+
+</html>

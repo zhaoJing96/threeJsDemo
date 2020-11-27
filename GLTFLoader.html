@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>gltf模型加载demo</title>
+</head>
+<style>
+    body {
+        margin: 0;
+        overflow: hidden;
+    }
+
+    canvas {
+        width: 100%;
+        height: 100%
+    }
+</style>
+
+<body>
+    <script src="./node/three.js"></script>
+    <script src="./node/OrbitControls.js"></script>
+    <script src="./node/GLTFLoader.js"></script>
+    <script>
+        // 创建一个场景
+        let scene = new THREE.Scene();
+
+        // 创建一个环境、使用环境贴图
+        let cubeTextureLoader = new THREE.CubeTextureLoader();
+        cubeTextureLoader.setPath('./images/sky/');
+        let urls = [
+            'Sky_DayX1.png',
+            'Sky_DayX2.png',
+            'Sky_DayY1.png',
+            'Sky_DayY2.png',
+            'Sky_DayZ1.png',
+            'Sky_DayZ2.png'
+        ];
+        let cubeTexture = cubeTextureLoader.load(urls);
+        // 利用环境贴图设置场景背景
+        scene.background = cubeTexture;
+
+        // 导入GlTF模型
+        let gltfLoader = new THREE.GLTFLoader();
+        gltfLoader.setPath('./images/BanGongLou/');
+        gltfLoader.load('BanGongLou.gltf', (gltf) => {
+            scene.add(gltf.scene);
+        });
+
+        // 添加光源
+        let light = new THREE.AmbientLight(0xffffff);
+        scene.add(light);
+        //点光源
+        var pointLight = new THREE.PointLight(0xffffff);
+        pointLight.position.set(400, 200, 300); //点光源位置
+        scene.add(pointLight); //点光源添加到场景中
+
+
+        // 获取宽高设置相机和渲染区域大小
+        let width = window.innerWidth;
+        let height = window.innerHeight;
+        let k = width / height;
+        // 投影相机
+        let camera = new THREE.PerspectiveCamera(60, k, 0.1, 1000);
+        camera.position.set(2, 2, 8);
+        camera.lookAt(scene.position);
+
+        // 创建一个webGL对象
+        let renderer = new THREE.WebGLRenderer();
+        renderer.setSize(width, height); // 设置渲染区域尺寸
+        renderer.setClearColor(0xffffff, 1); // 设置颜色透明度
+        document.body.appendChild(renderer.domElement);
+        // 渲染
+        function renderFn() {
+            // 用相机渲染一个场景
+            renderer.render(scene, camera);
+            requestAnimationFrame(renderFn);
+        }
+        renderFn();
+
+        // 监听鼠标事件
+        let controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.addEventListener('change', renderFn);
+
+        // 窗体变化自适应渲染
+        window.onresize = function () {
+            let rWidth = window.innerWidth;
+            let rHeight = window.innerHeight;
+            // 重新渲染canvas尺寸
+            renderer.setSize(rWidth, rHeight);
+            // 设置观察范围长宽比aspect为窗口宽高比
+            camera.aspect = rWidth / rHeight;
+            camera.updateProjectionMatrix();
+        }
+    </script>
+</body>
+
+</html>
