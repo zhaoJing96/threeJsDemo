@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>动态改变模型颜色</title>
+</head>
+<style>
+    body {
+        margin: 0;
+        overflow: hidden;
+    }
+
+    canvas {
+        width: 100%;
+        height: 100%
+    }
+
+    .colorList {
+        position: absolute;
+    }
+
+    .colorList li {
+        width: 30px;
+        height: 30px;
+        list-style: none;
+        margin-bottom: 10px;
+        cursor: pointer;
+    }
+
+    .red {
+        background-color: #ff0000;
+    }
+
+    .yellow {
+        background-color: #fff000;
+    }
+
+    .blue {
+        background-color: #0000ff;
+    }
+
+    .white {
+        background-color: #ffffff;
+    }
+</style>
+
+<body>
+    <ul class="colorList" id='ul'>
+        <li class="red" color="red"></li>
+        <li class="yellow" color="yellow"></li>
+        <li class="blue" color="blue"></li>
+        <li class="white" color="white"></li>
+    </ul>
+    <script src="./node/three.js"></script>
+    <script src="./node/OrbitControls.js"></script>
+    <script src="./node/GLTFLoader.js"></script>
+    <script>
+        let gltfData = null; // 导入模型对象
+        let selectedModalObjects = null; // 选中对象
+        // 创建一个场景
+        let scene = new THREE.Scene();
+
+        // 创建一个环境、使用环境贴图
+        let cubeTextureLoader = new THREE.CubeTextureLoader();
+        cubeTextureLoader.setPath('./images/sky/');
+        let urls = [
+            'Sky_DayX1.png',
+            'Sky_DayX2.png',
+            'Sky_DayY1.png',
+            'Sky_DayY2.png',
+            'Sky_DayZ1.png',
+            'Sky_DayZ2.png'
+        ];
+        let cubeTexture = cubeTextureLoader.load(urls);
+        // 利用环境贴图设置场景背景
+        scene.background = cubeTexture;
+
+        // 导入GlTF模型
+        let gltfLoader = new THREE.GLTFLoader();
+        gltfLoader.setPath('./images/BanGongLou/');
+        gltfLoader.load('BanGongLou.gltf', (gltf) => {
+            // 模型Mesh开启阴影
+            gltf.scene.traverse(obj => {
+                if (obj.isMesh) {
+                    obj.castShadow = true;
+                    obj.receiveShadow = true;
+                }
+            });
+            scene.add(gltf.scene);
+            gltfData = gltf;
+        });
+
+        // 添加光源
+        let light = new THREE.AmbientLight(0xffffff);
+        scene.add(light);
+        // 平行光
+        let directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+        directionalLight.position.set(-4, 8, 4);
+        let dhelper = new THREE.DirectionalLightHelper(directionalLight, 5, 0xff0000);
+        scene.add(directionalLight);
+        let hemisphereLight = new THREE.HemisphereLight(0xffffff, 0xffffff, 0.4);
+        hemisphereLight.position.set(0, 8, 0);
+        scene.add(hemisphereLight);
+        let hHelper = new THREE.HemisphereLightHelper(hemisphereLight, 5);
+        // 光源开启阴影
+        directionalLight.castShadow = true;
+        directionalLight.shadow.mapSize = new THREE.Vector2(1024, 1024);
+        directionalLight.shadow.bias = -0.001;
+
+        // 创建地板
+        let floorGeometry = new THREE.PlaneGeometry(5, 5, 1);
+        let floorMaterial = new THREE.MeshPhongMaterial({
+            color: 0xFFFFFF,
+            // color: 0x77F28F,
+            // transparent: true,
+            // opacity: 0.1,
+            shininess: 0 // 高光部分的亮度
+        });
+        let floor = new THREE.Mesh(floorGeometry, floorMaterial);
+        floor.rotation.x = -0.5 * Math.PI;
+        scene.add(floor);
+        // 地板接受阴影开启
+        floor.receiveShadow = true;
+
+        // 获取宽高设置相机和渲染区域大小
+        let width = window.innerWidth;
+        let height = window.innerHeight;
+        let k = width / height;
+        // 投影相机
+        let camera = new THREE.PerspectiveCamera(60, k, 0.1, 1000);
+        camera.position.set(2, 2, 8);
+        camera.lookAt(scene.position);
+
+        const selectHandle = function (e) {
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+
+            // 这里我们只检测模型的选中情况
+            let intersects = raycaster.intersectObjects(gltfData.scene.children, true);
+            if (intersects.length > 0) {
+                let selectedObjects = intersects[0].object;
+                selectedModalObjects = selectedObjects;
+            }
+        }
+        // 部件选择
+        let raycaster = new THREE.Raycaster();
+        let mouse = new THREE.Vector2();
+        document.body.addEventListener('click', selectHandle, false);
+
+        // 创建一个webGL对象
+        let renderer = new THREE.WebGLRenderer();
+        renderer.setSize(width, height); // 设置渲染区域尺寸
+        renderer.setClearColor(0xffffff, 1); // 设置颜色透明度
+        // 首先渲染器开启阴影
+        renderer.shadowMap.enabled = true;
+        document.body.appendChild(renderer.domElement);
+        // 渲染
+        function renderFn() {
+            // 用相机渲染一个场景
+            renderer.render(scene, camera);
+            requestAnimationFrame(renderFn);
+        }
+        renderFn();
+
+        // 监听鼠标事件
+        let controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.addEventListener('change', renderFn);
+
+        // 窗体变化自适应渲染
+        window.onresize = function () {
+            let rWidth = window.innerWidth;
+            let rHeight = window.innerHeight;
+            // 重新渲染canvas尺寸
+            renderer.setSize(rWidth, rHeight);
+            // 设置观察范围长宽比aspect为窗口宽高比
+            camera.aspect = rWidth / rHeight;
+            camera.updateProjectionMatrix();
+        }
+
+        // 改变颜色
+        window.onload = function () {
+            var oUl = document.getElementById("ul");
+            oUl.onclick = function (ev) {
+                var ev = ev || window.event;
+                var target = ev.target || ev.srcElement;
+                if (target.nodeName.toLowerCase() === 'li') {
+                    let color = target.getAttribute('color');
+                    let curColor = null;
+                    switch (color) {
+                        case 'red':
+                            curColor = '#ff0000';
+                            break;
+                        case 'yellow':
+                            curColor = '#fff000';
+                            break;
+                        case 'blue':
+                            curColor = '#0000ff';
+                            break;
+                        case 'white':
+                            curColor = '#ffffff';
+                            break;
+                    }
+                    if (gltfData) {
+                        gltfData.scene.traverse(obj => {
+                            if (obj.isMesh && obj.name === '网格_6') {
+                                let newMaterial = obj.material.clone();
+                                newMaterial.color = new THREE.Color(curColor); // 重新修改颜色
+                                obj.material = newMaterial;
+                            }
+                        });
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>
