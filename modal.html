@@ -19,6 +19,10 @@
 
     .colorList {
         position: absolute;
+        left: 10px;
+        top: 10px;
+        padding: 0;
+        margin: 0;
     }
 
     .colorList li {
@@ -44,6 +48,46 @@
     .white {
         background-color: #ffffff;
     }
+
+    .resolve {
+        position: absolute;
+        left: 60px;
+        top: 10px;
+        padding: 8px;
+        box-sizing: border-box;
+        background-color: #ffffff;
+        cursor: pointer;
+    }
+
+    .merge {
+        position: absolute;
+        left: 160px;
+        top: 10px;
+        padding: 8px;
+        box-sizing: border-box;
+        background-color: #ffffff;
+        cursor: pointer;
+    }
+
+    .recover {
+        position: absolute;
+        left: 260px;
+        top: 10px;
+        padding: 8px;
+        box-sizing: border-box;
+        background-color: #ffffff;
+        cursor: pointer;
+    }
+
+    .reset {
+        position: absolute;
+        left: 360px;
+        top: 10px;
+        padding: 8px;
+        box-sizing: border-box;
+        background-color: #ffffff;
+        cursor: pointer;
+    }
 </style>
 
 <body>
@@ -53,12 +97,24 @@
         <li class="blue" color="blue"></li>
         <li class="white" color="white"></li>
     </ul>
+    <div class="resolve" onclick="resolveEvent()">分解模型</div>
+    <div class="merge" onclick="mergeEvent()">合并模型</div>
+    <div class="recover" onclick="recoverEvent()">还原颜色</div>
+    <div class="reset" onclick="resetEvent()">一键还原</div>
+
     <script src="./node/three.js"></script>
     <script src="./node/OrbitControls.js"></script>
     <script src="./node/GLTFLoader.js"></script>
+    <script src="./node/EffectComposer.js"></script>
+    <script src="./node/RenderPass.js"></script>
+    <script src="./node/OutlinePass.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/2.1.2/TweenLite.min.js"> </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/2.1.2/plugins/CSSPlugin.min.js"> </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/2.1.2/easing/EasePack.min.js"> </script>
     <script>
         let gltfData = null; // 导入模型对象
-        let selectedModalObjects = null; // 选中对象
+        let selectedModelObjects = null; // 选中对象
+        let modelColorsPosi = []; // 材质对象，用于存储颜色位置
         // 创建一个场景
         let scene = new THREE.Scene();
 
@@ -81,15 +137,30 @@
         let gltfLoader = new THREE.GLTFLoader();
         gltfLoader.setPath('./images/BanGongLou/');
         gltfLoader.load('BanGongLou.gltf', (gltf) => {
-            // 模型Mesh开启阴影
+            console.log(gltf);
+
             gltf.scene.traverse(obj => {
+                // 模型Mesh开启阴影
                 if (obj.isMesh) {
                     obj.castShadow = true;
                     obj.receiveShadow = true;
                 }
+
+                // 存储初始化模型材质颜色和位置
+                let colorPosiObj = {};
+                if (obj.isMesh && obj.name === '网格_6' || obj.name === '网格_9' || obj.name === '网格_0') {
+                    colorPosiObj = {
+                        name: obj.name,
+                        color: obj.material.color,
+                        position: obj.position
+                    };
+                    modelColorsPosi.push(colorPosiObj);
+                }
             });
+            gltfData = {
+                ...gltf
+            };
             scene.add(gltf.scene);
-            gltfData = gltf;
         });
 
         // 添加光源
@@ -100,10 +171,6 @@
         directionalLight.position.set(-4, 8, 4);
         let dhelper = new THREE.DirectionalLightHelper(directionalLight, 5, 0xff0000);
         scene.add(directionalLight);
-        let hemisphereLight = new THREE.HemisphereLight(0xffffff, 0xffffff, 0.4);
-        hemisphereLight.position.set(0, 8, 0);
-        scene.add(hemisphereLight);
-        let hHelper = new THREE.HemisphereLightHelper(hemisphereLight, 5);
         // 光源开启阴影
         directionalLight.castShadow = true;
         directionalLight.shadow.mapSize = new THREE.Vector2(1024, 1024);
@@ -142,7 +209,7 @@
             let intersects = raycaster.intersectObjects(gltfData.scene.children, true);
             if (intersects.length > 0) {
                 let selectedObjects = intersects[0].object;
-                selectedModalObjects = selectedObjects;
+                selectedModelObjects = selectedObjects;
             }
         }
         // 部件选择
@@ -180,14 +247,29 @@
             camera.updateProjectionMatrix();
         }
 
-        // 改变颜色
+        // 高光选中效果
+        // let compomer = new THREE.EffectComposer(renderer);
+        // let renderPass = new THREE.RenderPass(scene, camera);
+        // composer.addPass(renderPass);
+        // let outlinePass = new THREE.OutlinePass(new THREE.Vector2(window.innerWidth, window.innerHeight), scene, camera);
+        // composer.addPass(outlinePass);
+        // outlinePass.visibleEdgeColor.set('#130AF2'); // 选中颜色
+        // outlinePass.edgeStrength = 5;
+        // outlinePass.edgeGlow = 1.5;
+        // const render = function () {
+        //     requestAnimationFrame(render);
+        //     composer.render();
+        // }
+
+        // 动态改变模型材质颜色
         window.onload = function () {
+            // 捕获方式获取当前点击选中颜色
             var oUl = document.getElementById("ul");
             oUl.onclick = function (ev) {
                 var ev = ev || window.event;
                 var target = ev.target || ev.srcElement;
                 if (target.nodeName.toLowerCase() === 'li') {
-                    let color = target.getAttribute('color');
+                    let color = target.getAttribute('color'); // 当前选中颜色
                     let curColor = null;
                     switch (color) {
                         case 'red':
@@ -203,16 +285,94 @@
                             curColor = '#ffffff';
                             break;
                     }
+                    // 判断模型是否存在，设置模型材质颜色
                     if (gltfData) {
                         gltfData.scene.traverse(obj => {
+                            // 指定对象
                             if (obj.isMesh && obj.name === '网格_6') {
-                                let newMaterial = obj.material.clone();
+                                let newMaterial = obj.material.clone(); // 获取当前对象已有材质
                                 newMaterial.color = new THREE.Color(curColor); // 重新修改颜色
                                 obj.material = newMaterial;
                             }
                         });
                     }
                 }
+            }
+        }
+        // 分解模型
+        function resolveEvent() {
+            if (gltfData) {
+                let component = gltfData.scene.getObjectByName("网格_9");
+                TweenLite.to(component.position, 1.5, {
+                    z: -200,
+                    ease: Power4.easeOut
+                });
+                let component1 = gltfData.scene.getObjectByName("网格_0");
+                TweenLite.to(component1.position, 1.5, {
+                    z: -200,
+                    x: -100,
+                    ease: Power4.easeOut
+                });
+            }
+        }
+        // 合并模型
+        function mergeEvent() {
+            if (gltfData) {
+                gltfData.scene.traverse(obj => {
+                    for (let i = 0; i < modelColorsPosi.length; i++) {
+                        const item = modelColorsPosi[i];
+                        // 指定对象
+                        if (obj.isMesh && obj.name === item.name) {
+                            TweenLite.to(obj.position, 1.5, {
+                                x: 0,
+                                y: 0,
+                                z: 0,
+                                ease: Power4.easeOut
+                            });
+                        }
+                    }
+                });
+            }
+        }
+        // 还原颜色
+        function recoverEvent() {
+            if (gltfData) {
+                gltfData.scene.traverse(obj => {
+                    for (let i = 0; i < modelColorsPosi.length; i++) {
+                        const item = modelColorsPosi[i];
+                        // 指定对象
+                        if (obj.isMesh && obj.name === item.name) {
+                            let newMaterial = obj.material.clone(); // 获取当前对象已有材质
+                            newMaterial.color = new THREE.Color(item.color); // 重新修改颜色
+                            obj.material = newMaterial;
+                        }
+                    }
+                });
+            }
+        }
+
+        // 重置
+        function resetEvent() {
+            if (gltfData) {
+                gltfData.scene.traverse(obj => {
+                    for (let i = 0; i < modelColorsPosi.length; i++) {
+                        const item = modelColorsPosi[i];
+                        // 指定对象
+                        if (obj.isMesh && obj.name === item.name) {
+                            // 还原颜色
+                            let newMaterial = obj.material.clone();
+                            newMaterial.color = new THREE.Color(item.color); 
+                            obj.material = newMaterial;
+                            // 还原位置
+                            TweenLite.to(obj.position, 1.5, {
+                                x: 0,
+                                y: 0,
+                                z: 0,
+                                ease: Power4.easeOut
+                            });
+                        }
+                    }
+                });
             }
         }
     </script>
