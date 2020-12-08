@@ -137,8 +137,6 @@
         let gltfLoader = new THREE.GLTFLoader();
         gltfLoader.setPath('./images/BanGongLou/');
         gltfLoader.load('BanGongLou.gltf', (gltf) => {
-            console.log(gltf);
-
             gltf.scene.traverse(obj => {
                 // 模型Mesh开启阴影
                 if (obj.isMesh) {
@@ -152,7 +150,9 @@
                     colorPosiObj = {
                         name: obj.name,
                         color: obj.material.color,
-                        position: obj.position
+                        posiX: obj.position.x,
+                        posiY: obj.position.y,
+                        posiZ: obj.position.z
                     };
                     modelColorsPosi.push(colorPosiObj);
                 }
@@ -210,6 +210,7 @@
             if (intersects.length > 0) {
                 let selectedObjects = intersects[0].object;
                 selectedModelObjects = selectedObjects;
+                console.log(selectedModelObjects);
             }
         }
         // 部件选择
@@ -324,9 +325,9 @@
                         // 指定对象
                         if (obj.isMesh && obj.name === item.name) {
                             TweenLite.to(obj.position, 1.5, {
-                                x: 0,
-                                y: 0,
-                                z: 0,
+                                x: item.posiX,
+                                y: item.posiY,
+                                z: item.posiZ,
                                 ease: Power4.easeOut
                             });
                         }
@@ -361,13 +362,13 @@
                         if (obj.isMesh && obj.name === item.name) {
                             // 还原颜色
                             let newMaterial = obj.material.clone();
-                            newMaterial.color = new THREE.Color(item.color); 
+                            newMaterial.color = new THREE.Color(item.color);
                             obj.material = newMaterial;
                             // 还原位置
                             TweenLite.to(obj.position, 1.5, {
-                                x: 0,
-                                y: 0,
-                                z: 0,
+                                x: item.posiX,
+                                y: item.posiY,
+                                z: item.posiZ,
                                 ease: Power4.easeOut
                             });
                         }
