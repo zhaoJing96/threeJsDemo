@@ -115,6 +115,10 @@
         let gltfData = null; // 导入模型对象
         let selectedModelObjects = null; // 选中对象
         let modelColorsPosi = []; // 材质对象，用于存储颜色位置
+
+        //模型包围盒
+        // let modelBox3 = new THREE.Box3();
+        // let meshBox3 = new THREE.Box3();
         // 创建一个场景
         let scene = new THREE.Scene();
 
@@ -137,11 +141,26 @@
         let gltfLoader = new THREE.GLTFLoader();
         gltfLoader.setPath('./images/BanGongLou/');
         gltfLoader.load('BanGongLou.gltf', (gltf) => {
+            //获取模型的包围盒
+            // modelBox3.expandByObject(gltf.scene);
+            //计算模型的中心点坐标，这个为爆炸中心
+            // let modelWorldPs = new THREE.Vector3().addVectors(modelBox3.max, modelBox3.min).multiplyScalar(0.5);
+
             gltf.scene.traverse(obj => {
                 // 模型Mesh开启阴影
                 if (obj.isMesh) {
                     obj.castShadow = true;
                     obj.receiveShadow = true;
+
+                    // meshBox3.setFromObject(obj);
+                    //获取每个mesh的中心点，爆炸方向为爆炸中心点指向mesh中心点
+                    // let worldPs = new THREE.Vector3().addVectors(meshBox3.max, meshBox3.min)
+                        // .multiplyScalar(0.5);
+                    // if (isNaN(worldPs.x)) return;
+                    //计算爆炸方向
+                    // obj.worldDir = new THREE.Vector3().subVectors(worldPs, modelWorldPs).normalize();
+                    //保存初始坐标
+                    // obj.userData.oldPs = obj.getWorldPosition(new THREE.Vector3())
                 }
 
                 // 存储初始化模型材质颜色和位置
@@ -300,8 +319,28 @@
                 }
             }
         }
+        // 动画效果
+        function moveAnimation(target, x, y, z, duration, delay) {
+            TweenLite.to(target.position, duration, {
+                x: x,
+                y: y,
+                z: z,
+                ease: Power4.easeOut
+            });
+        }
+        // 分解事件
+        function applyScalar(obj, scalar) {
+            obj.traverse(function (child) {
+                if (!child.isMesh || !child.worldDir) return;
+                //爆炸公式
+                let position = new THREE.Vector3().copy(child.userData.oldPs).add(new THREE.Vector3().copy(child
+                    .worldDir).multiplyScalar(scalar));
+                moveAnimation(child, position.x, position.y, position.z, 1.5);
+            });
+        }
         // 分解模型
         function resolveEvent() {
+            // applyScalar(gltfData.scene, 250)
             if (gltfData) {
                 let component = gltfData.scene.getObjectByName("网格_9");
                 TweenLite.to(component.position, 1.5, {
