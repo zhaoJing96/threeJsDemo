@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>安全帽模型功能调研</title>
+</head>
+<style>
+    body {
+        margin: 0;
+        overflow: hidden;
+    }
+
+    canvas {
+        width: 100%;
+        height: 100%
+    }
+
+    .colorList {
+        position: absolute;
+        left: 10px;
+        top: 10px;
+        padding: 0;
+        margin: 0;
+    }
+
+    .colorList li {
+        width: 30px;
+        height: 30px;
+        list-style: none;
+        margin-bottom: 10px;
+        cursor: pointer;
+    }
+
+    .red {
+        background-color: #ff0000;
+    }
+
+    .yellow {
+        background-color: #fff000;
+    }
+
+    .blue {
+        background-color: #0000ff;
+    }
+
+    .white {
+        background-color: #ffffff;
+    }
+
+    .resolve {
+        position: absolute;
+        left: 60px;
+        top: 10px;
+        padding: 8px;
+        box-sizing: border-box;
+        background-color: #ffffff;
+        cursor: pointer;
+    }
+
+    .merge {
+        position: absolute;
+        left: 160px;
+        top: 10px;
+        padding: 8px;
+        box-sizing: border-box;
+        background-color: #ffffff;
+        cursor: pointer;
+    }
+
+    .recover {
+        position: absolute;
+        left: 260px;
+        top: 10px;
+        padding: 8px;
+        box-sizing: border-box;
+        background-color: #ffffff;
+        cursor: pointer;
+    }
+
+    .reset {
+        position: absolute;
+        left: 360px;
+        top: 10px;
+        padding: 8px;
+        box-sizing: border-box;
+        background-color: #ffffff;
+        cursor: pointer;
+    }
+</style>
+
+<body>
+    <ul class="colorList" id='ul'>
+        <li class="red" color="red"></li>
+        <li class="yellow" color="yellow"></li>
+        <li class="blue" color="blue"></li>
+        <li class="white" color="white"></li>
+    </ul>
+    <div class="resolve" onclick="resolveEvent()">分解模型</div>
+    <div class="merge" onclick="mergeEvent()">合并模型</div>
+    <div class="recover" onclick="recoverEvent()">还原颜色</div>
+    <div class="reset" onclick="resetEvent()">一键还原</div>
+
+    <script src="./node/three.js"></script>
+    <script src="./node/controls/OrbitControls.js"></script>
+    <script src="./node/loaders/GLTFLoader.js"></script>
+    <script src="./node/postprocessing/EffectComposer.js"></script>
+    <script src="./node/postprocessing/RenderPass.js"></script>
+    <script src="./node/postprocessing/OutlinePass.js"></script>
+    <script src="./node/postprocessing/ShaderPass.js"></script>
+    <script src="./node/shaders/CopyShader.js"></script>
+    <script src="./node/Tween.js"></script>
+    <script>
+        let modelData = null; // 导入模型对象
+        let selectedModelObjects = null; // 选中对象
+        let modelColorsPosi = []; // 材质对象，用于存储颜色位置
+        // 获取宽高设置相机和渲染区域大小
+        let width = window.innerWidth;
+        let height = window.innerHeight;
+        let k = width / height;
+        let isComposer = false; // 是否高亮 
+        let delta = new THREE.Clock().getDelta(); //getDelta()方法获得两帧的时间间隔
+        // 创建一个场景
+        let scene = new THREE.Scene();
+        setGltfModel(); // 导入GlTF模型
+        setLight(); // 设置光源
+        // 投影相机
+        let camera = new THREE.PerspectiveCamera(5, k, 0.1, 100);
+        camera.position.set(2, 2, 8);
+        camera.lookAt(scene.position);
+        // 部件选择
+        let raycaster = new THREE.Raycaster();
+        let mouse = new THREE.Vector2();
+        document.body.addEventListener('click', selectHandle, false);
+
+        // 创建一个webGL对象
+        let renderer = new THREE.WebGLRenderer();
+        renderer.setSize(width, height); // 设置渲染区域尺寸
+        renderer.setClearColor(0x333333, 1); // 设置颜色透明度
+        document.body.appendChild(renderer.domElement);
+
+        // 高光选中效果
+        let composer = new THREE.EffectComposer(renderer);
+        let renderPass = new THREE.RenderPass(scene, camera);
+        composer.addPass(renderPass);
+        let outlinePass = new THREE.OutlinePass(new THREE.Vector2(width, height), scene, camera);
+        outlinePass.visibleEdgeColor.set('#ffffff'); // 选中颜色
+        outlinePass.edgeStrength = 2;
+        outlinePass.edgeGlow = 1.5;
+        outlinePass.renderToScreen = true; // 设置这个参数的目的是马上将当前的内容输出
+        composer.addPass(outlinePass);
+        // 高亮事件
+        composer.selectedObjectEffect = function (objs) {
+            let selectedObjects = [];
+            selectedObjects.push(objs);
+            outlinePass.selectedObjects = selectedObjects;
+        }
+        // 监听鼠标事件
+        let controls = new THREE.OrbitControls(camera, renderer.domElement);
+        renderFn();
+        // 窗体变化自适应渲染
+        window.onresize = function () {
+            let rWidth = window.innerWidth;
+            let rHeight = window.innerHeight;
+            // 重新渲染canvas尺寸
+            renderer.setSize(rWidth, rHeight);
+            // 设置观察范围长宽比aspect为窗口宽高比
+            camera.aspect = rWidth / rHeight;
+            camera.updateProjectionMatrix();
+        }
+        // 动态改变模型材质颜色，改变帽壳颜色
+        window.onload = function () {
+            // 捕获方式获取当前点击选中颜色
+            var oUl = document.getElementById("ul");
+            oUl.onclick = function (ev) {
+                var ev = ev || window.event;
+                var target = ev.target || ev.srcElement;
+                if (target.nodeName.toLowerCase() === 'li') {
+                    let color = target.getAttribute('color'); // 当前选中颜色
+                    let curColor = null;
+                    switch (color) {
+                        case 'red':
+                            curColor = '#ff0000';
+                            break;
+                        case 'yellow':
+                            curColor = '#fff000';
+                            break;
+                        case 'blue':
+                            curColor = '#0000ff';
+                            break;
+                        case 'white':
+                            curColor = '#ffffff';
+                            break;
+                    }
+                    // 判断模型是否存在，设置模型材质颜色
+                    if (modelData) {
+                        modelData.traverse(obj => {
+                            // 指定对象
+                            if (obj.isMesh && obj.name === 'MK') {
+                                let newMaterial = obj.material.clone(); // 获取当前对象已有材质
+                                newMaterial.color = new THREE.Color(curColor); // 重新修改颜色
+                                obj.material = newMaterial;
+                            }
+                        });
+                    }
+                }
+            }
+        }
+        // 渲染
+        function renderFn() {
+            TWEEN.update(); // 动画渲染
+            requestAnimationFrame(renderFn);
+            if (isComposer) {
+                // 动画渲染
+                composer.render(delta);
+            } else {
+                // 用相机渲染一个场景
+                renderer.render(scene, camera);
+            }
+        }
+        // 监听点击事件
+        function selectHandle(e) {
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+
+            // 这里我们只检测模型的选中情况
+            let intersects = raycaster.intersectObjects(modelData.children, true);
+            if (intersects.length > 0) {
+                isComposer = true;
+                let selectedObjects = intersects[0].object;
+                selectedModelObjects = selectedObjects; // 设置当前选中Mesh对象
+                // 判断只能选中左右耳机、帽壳、电磁仓、感应区域
+                if (selectedObjects.name === 'EJ1' ||
+                    selectedObjects.name === 'EJ2' ||
+                    selectedObjects.name === 'DCC' ||
+                    selectedObjects.name === 'GY' ||
+                    selectedObjects.name === 'MK') {
+                    composer.selectedObjectEffect(selectedObjects);
+                } else {
+                    composer.selectedObjectEffect(selectedObjects.parent);
+                }
+            } else {
+                isComposer = false;
+            }
+        }
+        // 加载模型、存储模型初始颜色等参数
+        function setGltfModel() {
+            // 导入GlTF模型
+            let gltfLoader = new THREE.GLTFLoader();
+            gltfLoader.setPath('./images/');
+            gltfLoader.load('ZN_Mao.glb', (gltf) => {
+                gltf.scene.traverse(obj => {
+                    // 存储模型小零件初始颜色、位置、名称
+                    let modelObj = null;
+                    modelObj = {
+                        name: obj.name,
+                        color: obj.isMesh && obj.material.color,
+                        posiX: obj.position.x,
+                        posiY: obj.position.y,
+                        posiZ: obj.position.z
+                    }
+                    obj.userData = {
+                        ...modelObj
+                    };
+                });
+                modelData = gltf.scene; // 存储模型数据
+                scene.add(gltf.scene);
+                scene.position.y = -0.15;
+            });
+        }
+        // 设置灯光
+        function setLight() {
+            //- 添加平行光光源
+            let lightTop = new THREE.DirectionalLight(0xffffff, 0.1);
+            let lightBottom = new THREE.DirectionalLight(0xffffff, 0.1);
+            let lightLeft = new THREE.DirectionalLight(0xffffff, 0.6);
+            let lightRight = new THREE.DirectionalLight(0xffffff, 0.6);
+            let lightBefore = new THREE.DirectionalLight(0xffffff, 0.6);
+            let lightAfter = new THREE.DirectionalLight(0xffffff, 0.6);
+            lightTop.position.set(4, 6, 4);
+            lightBottom.position.set(4, -6, 4);
+            lightLeft.position.set(5, 6, 0);
+            lightRight.position.set(-5, 6, 0);
+            lightBefore.position.set(-1, -1, -1);
+            lightAfter.position.set(1, -1, 1);
+            scene.add(lightTop);
+            scene.add(lightBottom);
+            scene.add(lightLeft);
+            scene.add(lightRight);
+            scene.add(lightBefore);
+            scene.add(lightAfter);
+        }
+        // 分解、合并动画
+        function resolveAnimation(name, posi) {
+            let target = modelData.getObjectByName(name);
+            if (target.isMesh) {
+                target.geometry.dispose();
+                target.material.dispose();
+            }
+            new TWEEN.Tween(target.position)
+                .to({
+                    x: posi && posi.x ? posi.x : target.userData.posiX,
+                    y: posi && posi.y ? posi.y : target.userData.posiY,
+                    z: posi && posi.z ? posi.z : target.userData.posiZ,
+                }, 1000).delay(0).easing(TWEEN.Easing.Sinusoidal.InOut) //InOut表示前半段加速，后半段减速   Linear.None表示匀速
+                .start();
+        }
+        // 分解模型
+        function resolveEvent() {
+            if (modelData) {
+                resolveAnimation("EJ1", {
+                    x: 0.1
+                });
+                resolveAnimation("EJ2", {
+                    x: -0.1
+                });
+                resolveAnimation("DCC", {
+                    z: -0.1
+                });
+                resolveAnimation("GY", {
+                    z: 0.1
+                });
+                resolveAnimation("MK", {
+                    y: 0.1
+                });
+            }
+        }
+        // 合并模型
+        function mergeEvent() {
+            if (modelData) {
+                resolveAnimation("EJ1");
+                resolveAnimation("EJ2");
+                resolveAnimation("DCC");
+                resolveAnimation("GY");
+                resolveAnimation("MK");
+            }
+        }
+        // 还原颜色
+        function recoverEvent() {
+            if (modelData) {
+                modelData.traverse(obj => {
+                    if (obj.isMesh) {
+                        let newMaterial = obj.material.clone(); // 获取当前对象已有材质
+                        newMaterial.color = new THREE.Color(obj.userData.color); // 重新修改颜色
+                        obj.material = newMaterial;
+                    }
+                });
+            }
+        }
+
+        // 重置
+        function resetEvent() {
+            if (modelData) {
+                modelData.traverse(obj => {
+                    if (obj.isMesh) {
+                        let newMaterial = obj.material.clone(); // 获取当前对象已有材质
+                        newMaterial.color = new THREE.Color(obj.userData.color); // 重新修改颜色
+                        obj.material = newMaterial;
+                    }
+                    if (obj.name === obj.userData.name) {
+                        new TWEEN.Tween(obj.position)
+                            .to({
+                                x: obj.userData.posiX,
+                                y: obj.userData.posiY,
+                                z: obj.userData.posiZ,
+                            }, 1000)
+                            .delay(0)
+                            .easing(TWEEN.Easing.Sinusoidal.InOut) //InOut表示前半段加速，后半段减速   Linear.None表示匀速
+                            .start();
+                    }
+                });
+            }
+        }
+    </script>
+</body>
+
+</html>
