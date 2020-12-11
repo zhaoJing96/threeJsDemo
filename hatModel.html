@@ -23,6 +23,7 @@
         top: 10px;
         padding: 0;
         margin: 0;
+        z-index: 100;
     }
 
     .colorList li {
@@ -57,6 +58,7 @@
         box-sizing: border-box;
         background-color: #ffffff;
         cursor: pointer;
+        z-index: 100;
     }
 
     .merge {
@@ -67,6 +69,7 @@
         box-sizing: border-box;
         background-color: #ffffff;
         cursor: pointer;
+        z-index: 100;
     }
 
     .recover {
@@ -77,6 +80,7 @@
         box-sizing: border-box;
         background-color: #ffffff;
         cursor: pointer;
+        z-index: 100;
     }
 
     .reset {
@@ -87,6 +91,15 @@
         box-sizing: border-box;
         background-color: #ffffff;
         cursor: pointer;
+        z-index: 100;
+    }
+
+    .infoBox {
+        background-color: #ffffff;
+        padding: 10px;
+        box-sizing: border-box;
+        /* width: 100px;
+        height: 100px; */
     }
 </style>
 
@@ -111,6 +124,8 @@
     <script src="./node/postprocessing/ShaderPass.js"></script>
     <script src="./node/shaders/CopyShader.js"></script>
     <script src="./node/Tween.js"></script>
+    <script src="./node/renderers/CSS2DRenderer.js"></script>
+    <script src="./node/renderers/CSS3DRenderer.js"></script>
     <script>
         let modelData = null; // 导入模型对象
         let selectedModelObjects = null; // 选中对象
@@ -119,6 +134,10 @@
         let width = window.innerWidth;
         let height = window.innerHeight;
         let k = width / height;
+
+        let raycaster = new THREE.Raycaster();
+        let mouse = new THREE.Vector2();
+
         let isComposer = false; // 是否高亮 
         let delta = new THREE.Clock().getDelta(); //getDelta()方法获得两帧的时间间隔
         // 创建一个场景
@@ -129,16 +148,19 @@
         let camera = new THREE.PerspectiveCamera(5, k, 0.1, 100);
         camera.position.set(2, 2, 8);
         camera.lookAt(scene.position);
-        // 部件选择
-        let raycaster = new THREE.Raycaster();
-        let mouse = new THREE.Vector2();
-        document.body.addEventListener('click', selectHandle, false);
 
         // 创建一个webGL对象
         let renderer = new THREE.WebGLRenderer();
         renderer.setSize(width, height); // 设置渲染区域尺寸
         renderer.setClearColor(0x333333, 1); // 设置颜色透明度
         document.body.appendChild(renderer.domElement);
+
+        // 3D渲染器
+        let css3DRenderer = new THREE.CSS2DRenderer();
+        css3DRenderer.setSize(width, height);
+        css3DRenderer.domElement.style.position = 'absolute';
+        css3DRenderer.domElement.style.top = '0px';
+        document.body.appendChild(css3DRenderer.domElement);
 
         // 高光选中效果
         let composer = new THREE.EffectComposer(renderer);
@@ -156,8 +178,10 @@
             selectedObjects.push(objs);
             outlinePass.selectedObjects = selectedObjects;
         }
+        // 监听鼠标点击事件       
+        document.body.addEventListener('click', selectHandle, false);
         // 监听鼠标事件
-        let controls = new THREE.OrbitControls(camera, renderer.domElement);
+        let controls = new THREE.OrbitControls(camera, css3DRenderer.domElement);
         renderFn();
         // 窗体变化自适应渲染
         window.onresize = function () {
@@ -169,6 +193,7 @@
             camera.aspect = rWidth / rHeight;
             camera.updateProjectionMatrix();
         }
+
         // 动态改变模型材质颜色，改变帽壳颜色
         window.onload = function () {
             // 捕获方式获取当前点击选中颜色
@@ -211,6 +236,7 @@
         function renderFn() {
             TWEEN.update(); // 动画渲染
             requestAnimationFrame(renderFn);
+            css3DRenderer.render(scene, camera);
             if (isComposer) {
                 // 动画渲染
                 composer.render(delta);
@@ -238,6 +264,18 @@
                     selectedObjects.name === 'GY' ||
                     selectedObjects.name === 'MK') {
                     composer.selectedObjectEffect(selectedObjects);
+                    // 信息弹窗
+                    const container = document.createElement('div');
+                    container.className = 'infoBox';
+                    container.textContent = '这个是帽子';
+                    let hatLabel = new THREE.CSS2DObject(container);
+                    hatLabel.position.set(0, 0.15, 0);
+                    selectedObjects.add(hatLabel);
+                    if (selectedObjects.name === 'MK') {
+                        container.style.display = 'block';
+                    } else {
+                        container.style.display = 'none';
+                    }
                 } else {
                     composer.selectedObjectEffect(selectedObjects.parent);
                 }
