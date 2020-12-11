@@ -34,3 +34,6 @@ ShapeBufferGeometry/ShapeGeometry：从一个或多个路径形状中创建一�
 #### 绘制圆时，鼠标点击选中圆心点坐标位置，监听鼠标移动mousemove事件来获取移动位置距离圆心点坐标的距离（两点之间距离），将该距离作为圆半径，最后鼠标双击生成圆形。
 ##### drawCircle.html：在立方体上绘制圆形
 实现原理：点坐标确定圆心，通过鼠标移动确认半径(圆心和边缘点坐标距离)，通过CircleGeometry绘制圆
+
+##### modelBlast.html：three.js记载3D模型，模型拆分爆炸效果，模型部件改变颜色
+实现原理：gltfLoader加载模型，改变模型position实现爆炸添加TweenLite动画，改变模型材质color实现颜色改变
