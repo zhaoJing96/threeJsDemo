@@ -175,6 +175,16 @@
         let scene = new THREE.Scene();
         setGltfModel(); // 导入GlTF模型
         setLight(); // 设置光源
+        // let lightLoader = new THREE.GLTFLoader();
+        // lightLoader.setPath('./images/');
+        // lightLoader.load('ZN_Mao_Deng(1).glb', (res) => {
+        //     console.log(res);
+        //     scene.add(res.scene);
+        // });
+        // let lightCenter = new THREE.PointLight(0xffffff, 0.5);
+        // lightCenter.position.set(0, 0, 0);
+        // scene.add(lightCenter);
+
         // 投影相机
         let camera = new THREE.PerspectiveCamera(45, k, 0.1, 1000);
         camera.position.set(2, 2, 8);
@@ -187,7 +197,7 @@
             alpha: true
         });
         renderer.setSize(width, height); // 设置渲染区域尺寸
-        renderer.setClearColor(0x333333, 1); // 设置颜色透明度
+        renderer.setClearColor(0x222222, 1); // 设置颜色透明度
         document.body.appendChild(renderer.domElement);
 
         // 2D渲染器
@@ -204,7 +214,7 @@
         composer.addPass(renderPass);
         let outlinePass = new THREE.OutlinePass(new THREE.Vector2(width, height), scene, camera);
         outlinePass.visibleEdgeColor.set('#ffffff'); // 选中颜色
-        outlinePass.edgeStrength = 2;
+        outlinePass.edgeStrength = 3;
         outlinePass.edgeGlow = 1.5;
         outlinePass.renderToScreen = true; // 设置这个参数的目的是马上将当前的内容输出
         composer.addPass(outlinePass);
@@ -394,27 +404,62 @@
         // 设置灯光
         function setLight() {
             //- 添加平行光光源
-            let lightTop = new THREE.DirectionalLight(0xffffff, 0.1);
-            let lightBottom = new THREE.DirectionalLight(0xffffff, 0.1);
-            let lightLeft = new THREE.DirectionalLight(0xffffff, 0.6);
-            let lightRight = new THREE.DirectionalLight(0xffffff, 0.6);
-            let lightBefore = new THREE.DirectionalLight(0xffffff, 0.6);
-            let lightAfter = new THREE.DirectionalLight(0xffffff, 0.6);
-            lightTop.position.set(4, 6, 4);
-            lightBottom.position.set(4, -6, 4);
-            lightLeft.position.set(5, 6, 0);
-            lightRight.position.set(-5, 6, 0);
-            lightBefore.position.set(-1, -1, -1);
-            lightAfter.position.set(1, -1, 1);
+            let lightTop = new THREE.DirectionalLight(0xffffff, 0.25);
+            let lightBottom = new THREE.DirectionalLight(0xffffff, 0.3);
+            let lightLeftTop = new THREE.DirectionalLight(0xffffff, 0.2);
+            let lightLeft = new THREE.DirectionalLight(0xffffff, 0.25);
+            let lightLeftBottom = new THREE.DirectionalLight(0xffffff, 0.2);
+            let lightRightTop = new THREE.DirectionalLight(0xffffff, 0.2);
+            let lightRight = new THREE.DirectionalLight(0xffffff, 0.25);
+            let lightRightBottom = new THREE.DirectionalLight(0xffffff, 0.2);
+            let lightBeforeTop = new THREE.DirectionalLight(0xffffff, 0.2);
+            let lightBefore = new THREE.DirectionalLight(0xffffff, 0.25);
+            let lightBeforeBottom = new THREE.DirectionalLight(0xffffff, 0.2);
+            let lightAfterTop = new THREE.DirectionalLight(0xffffff, 0.2);
+            let lightAfter = new THREE.DirectionalLight(0xffffff, 0.25);
+            let lightAfterBottom = new THREE.DirectionalLight(0xffffff, 0.2);
+            let lightCenter = new THREE.PointLight(0xffffff, 0.2);
+            lightTop.position.set(0, 10, 0);
+            lightBottom.position.set(0, -5, 0);
+            lightLeftTop.position.set(10, 3, 0);
+            lightLeft.position.set(10, 0, 0);
+            lightLeftBottom.position.set(10, -3, 0);
+            lightRightTop.position.set(-10, 3, 0);
+            lightRight.position.set(-10, 0, 0);
+            lightRightBottom.position.set(-10, -3, 0);
+            lightBeforeTop.position.set(0, 5, -20);
+            lightBefore.position.set(0, 0, -20);
+            lightBeforeBottom.position.set(0, -5, -20);
+            lightAfterTop.position.set(0, 5, 20);
+            lightAfter.position.set(0, 0, 20);
+            lightAfterBottom.position.set(0, -5, 20);
+            lightCenter.position.set(0, 10, 20);
             scene.add(lightTop);
             scene.add(lightBottom);
+            scene.add(lightLeftTop);
             scene.add(lightLeft);
+            scene.add(lightLeftBottom);
+            scene.add(lightRightTop);
             scene.add(lightRight);
+            scene.add(lightRightBottom);
+            scene.add(lightBeforeTop);
             scene.add(lightBefore);
+            scene.add(lightBeforeBottom);
+            scene.add(lightAfterTop);
             scene.add(lightAfter);
+            scene.add(lightAfterBottom);
+            scene.add(lightCenter);
         }
         // 分解、合并动画
-        function resolveAnimation(name, posi) {
+        function resolveAnimation(name, posi, type) {
+            let time = 0;
+            if (type && name !== 'MK') {
+                // 分解时，其他延迟
+                time = 100;
+            } else if (!type && name === 'MK') {
+                // 合并时，帽壳延迟
+                time = 100;
+            }
             let target = modelData.getObjectByName(name);
             if (target.isMesh) {
                 target.geometry.dispose();
@@ -425,7 +470,8 @@
                     x: posi && posi.x ? posi.x : target.userData.posiX,
                     y: posi && posi.y ? posi.y : target.userData.posiY,
                     z: posi && posi.z ? posi.z : target.userData.posiZ,
-                }, 1000).delay(0).easing(TWEEN.Easing.Sinusoidal.InOut) //InOut表示前半段加速，后半段减速   Linear.None表示匀速
+                }, 1000).delay(time).easing(TWEEN.Easing.Sinusoidal
+                    .InOut) //InOut表示前半段加速，后半段减速   Linear.None表示匀速
                 .start();
         }
         // 分解模型
@@ -433,19 +479,19 @@
             if (modelData) {
                 resolveAnimation("EJ1", {
                     x: 0.1
-                });
+                }, 1);
                 resolveAnimation("EJ2", {
                     x: -0.1
-                });
+                }, 1);
                 resolveAnimation("DCC", {
                     z: -0.1
-                });
+                }, 1);
                 resolveAnimation("GY", {
                     z: 0.1
-                });
+                }, 1);
                 resolveAnimation("MK", {
                     y: 0.1
-                });
+                }, 1);
             }
         }
         // 合并模型
