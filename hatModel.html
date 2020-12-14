@@ -129,6 +129,7 @@
     <script>
         let modelData = null; // 导入模型对象
         let selectedModelObjects = null; // 选中对象
+        let selectedModelName = null; // 选中对象名称
         let modelColorsPosi = []; // 材质对象，用于存储颜色位置
         // 获取宽高设置相机和渲染区域大小
         let width = window.innerWidth;
@@ -140,6 +141,33 @@
 
         let isComposer = false; // 是否高亮 
         let delta = new THREE.Clock().getDelta(); //getDelta()方法获得两帧的时间间隔
+        // 信息窗体dom节点
+        // 帽壳
+        const mkInfoBox = document.createElement('div');
+        mkInfoBox.className = 'infoBox';
+        mkInfoBox.textContent = '这个是帽壳';
+        let mkLabel = new THREE.CSS2DObject(mkInfoBox);
+        // 耳机1
+        const ejInfoBox1 = document.createElement('div');
+        ejInfoBox1.className = 'infoBox';
+        ejInfoBox1.textContent = '这个是耳机1';
+        let ejLabel1 = new THREE.CSS2DObject(ejInfoBox1);
+        // 耳机2
+        const ejInfoBox2 = document.createElement('div');
+        ejInfoBox2.className = 'infoBox';
+        ejInfoBox2.textContent = '这个是耳机2';
+        let ejLabel2 = new THREE.CSS2DObject(ejInfoBox2);
+        // 感应区
+        const gyInfoBox = document.createElement('div');
+        gyInfoBox.className = 'infoBox';
+        gyInfoBox.textContent = '这个是感应区';
+        let gyLabel = new THREE.CSS2DObject(gyInfoBox);
+        // 电池仓
+        const dccInfoBox = document.createElement('div');
+        dccInfoBox.className = 'infoBox';
+        dccInfoBox.textContent = '这个是电池仓';
+        let dccLabel = new THREE.CSS2DObject(dccInfoBox);
+
         // 创建一个场景
         let scene = new THREE.Scene();
         setGltfModel(); // 导入GlTF模型
@@ -159,12 +187,13 @@
         renderer.setClearColor(0x333333, 1); // 设置颜色透明度
         document.body.appendChild(renderer.domElement);
 
-        // 3D渲染器
-        let css3DRenderer = new THREE.CSS2DRenderer();
-        css3DRenderer.setSize(width, height);
-        css3DRenderer.domElement.style.position = 'absolute';
-        css3DRenderer.domElement.style.top = '0px';
-        document.body.appendChild(css3DRenderer.domElement);
+        // 2D渲染器
+        let css2DRenderer = new THREE.CSS2DRenderer();
+        css2DRenderer.setSize(width, height);
+        css2DRenderer.domElement.style.position = 'absolute';
+        css2DRenderer.domElement.style.top = '0px';
+        css2DRenderer.domElement.style.left = '0px';
+        document.body.appendChild(css2DRenderer.domElement);
 
         // 高光选中效果
         let composer = new THREE.EffectComposer(renderer);
@@ -185,7 +214,7 @@
         // 监听鼠标点击事件       
         document.body.addEventListener('click', selectHandle, false);
         // 监听鼠标事件
-        let controls = new THREE.OrbitControls(camera, css3DRenderer.domElement);
+        let controls = new THREE.OrbitControls(camera, css2DRenderer.domElement);
         renderFn();
         // 窗体变化自适应渲染
         window.onresize = function () {
@@ -240,7 +269,7 @@
         function renderFn() {
             TWEEN.update(); // 动画渲染
             requestAnimationFrame(renderFn);
-            css3DRenderer.render(scene, camera);
+            css2DRenderer.render(scene, camera);
             if (isComposer) {
                 // 动画渲染
                 composer.render(delta);
@@ -258,7 +287,7 @@
             // 这里我们只检测模型的选中情况
             let intersects = raycaster.intersectObjects(modelData.children, true);
             if (intersects.length > 0) {
-                isComposer = true;
+                isComposer = true; // 高亮选中
                 let selectedObjects = intersects[0].object;
                 selectedModelObjects = selectedObjects; // 设置当前选中Mesh对象
                 // 判断只能选中左右耳机、帽壳、电磁仓、感应区域
@@ -267,24 +296,58 @@
                     selectedObjects.name === 'DCC' ||
                     selectedObjects.name === 'GY' ||
                     selectedObjects.name === 'MK') {
-                    composer.selectedObjectEffect(selectedObjects);
-                    // 信息弹窗
-                    const container = document.createElement('div');
-                    container.className = 'infoBox';
-                    container.textContent = '这个是帽子';
-                    let hatLabel = new THREE.CSS2DObject(container);
-                    hatLabel.position.set(0, 0.15, 0);
-                    selectedObjects.add(hatLabel);
-                    if (selectedObjects.name === 'MK') {
-                        container.style.display = 'block';
-                    } else {
-                        container.style.display = 'none';
-                    }
+                    composer.selectedObjectEffect(selectedObjects); // 设置高亮选中对象
+                    selectedModelName = selectedObjects.name; // 设置选中对象名称
                 } else {
                     composer.selectedObjectEffect(selectedObjects.parent);
+                    selectedModelName = selectedObjects.parent.name; // 设置选中对象名称
                 }
+                // 信息弹窗位置设置
+                let posix = selectedObjects.position.x;
+                let posiy = selectedObjects.position.y;
+                let posiz = selectedObjects.position.z;
+
+                switch (selectedModelName) {
+                    case 'MK':
+                        mkLabel.position.set(posix, posiy + 0.3, posiz);
+                        selectedObjects.add(mkLabel);
+                        mkLabel.visible = true;
+                        break;
+                    case 'EJ1':
+                        ejLabel1.position.set(posix + 0.175, posiy + 0.1, posiz);
+                        selectedObjects.add(ejLabel1);
+                        ejLabel1.visible = true;
+                        break;
+                    case 'EJ2':
+                        ejLabel2.position.set(-(posix + 0.175), posiy + 0.1, posiz);
+                        selectedObjects.add(ejLabel2);
+                        ejLabel2.visible = true;
+                        break;
+                    case 'GY':
+                        gyLabel.position.set(posix, posiy + 0.1, posiz);
+                        selectedObjects.add(gyLabel);
+                        gyLabel.visible = true;
+                        break;
+                    case 'DCC':
+                        dccLabel.position.set(posix, posiy + 0.1, -(posiz + 0.1));
+                        selectedObjects.add(dccLabel);
+                        dccLabel.visible = true;
+                        break;
+                    default:
+                        // mkLabel.visible = false;
+                        // ejLabel1.visible = false;
+                        // ejLabel2.visible = false;
+                        // gyLabel.visible = false;
+                        // dccLabel.visible = false;
+                }
+
             } else {
                 isComposer = false;
+                mkLabel.visible = false;
+                ejLabel1.visible = false;
+                ejLabel2.visible = false;
+                gyLabel.visible = false;
+                dccLabel.visible = false;
             }
         }
         // 加载模型、存储模型初始颜色等参数
