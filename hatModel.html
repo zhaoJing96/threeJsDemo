@@ -114,6 +114,7 @@
     <div class="merge" onclick="mergeEvent()">合并模型</div>
     <div class="recover" onclick="recoverEvent()">还原颜色</div>
     <div class="reset" onclick="resetEvent()">一键还原</div>
+    <div class="reset" onclick="resetCameraPosi()">还原角度</div>
 
     <script src="./node/three.js"></script>
     <script src="./node/controls/OrbitControls.js"></script>
@@ -168,12 +169,14 @@
         dccInfoBox.textContent = '这个是电池仓';
         let dccLabel = new THREE.CSS2DObject(dccInfoBox);
 
+        let tx, ty, tz, rx, ry, rz, px, py, pz = null; // 获取相机初始化位置、旋转角度，控制器当前角度
+
         // 创建一个场景
         let scene = new THREE.Scene();
         setGltfModel(); // 导入GlTF模型
         setLight(); // 设置光源
         // 投影相机
-        let camera = new THREE.PerspectiveCamera(5, k, 0.1, 100);
+        let camera = new THREE.PerspectiveCamera(45, k, 0.1, 1000);
         camera.position.set(2, 2, 8);
         camera.lookAt(scene.position);
 
@@ -215,6 +218,18 @@
         document.body.addEventListener('click', selectHandle, false);
         // 监听鼠标事件
         let controls = new THREE.OrbitControls(camera, css2DRenderer.domElement);
+
+        // 获取相机初始化位置、旋转角度，控制器当前角度
+        tx = controls.target.x;
+        ty = controls.target.y;
+        tz = controls.target.z;
+        rx = camera.rotation.x;
+        ry = camera.rotation.y;
+        rz = camera.rotation.z;
+        px = camera.position.x;
+        py = camera.position.y;
+        pz = camera.position.z;
+
         renderFn();
         // 窗体变化自适应渲染
         window.onresize = function () {
@@ -372,7 +387,8 @@
                 });
                 modelData = gltf.scene; // 存储模型数据
                 scene.add(gltf.scene);
-                scene.position.y = -0.15;
+                scene.position.y = -2;
+                scene.scale.set(10, 10, 10);
             });
         }
         // 设置灯光
@@ -477,6 +493,34 @@
                     }
                 });
             }
+        }
+
+        // 还原旋转角度
+        function resetCameraPosi() {
+            new TWEEN.Tween(controls.target)
+                .to({
+                    x: tx,
+                    y: ty,
+                    z: tz
+                }, 1000)
+                .easing(TWEEN.Easing.Linear.None) //InOut表示前半段加速，后半段减速
+                .start();
+            new TWEEN.Tween(camera.rotation)
+                .to({
+                    x: rx,
+                    y: ry,
+                    z: rz
+                }, 1000)
+                .easing(TWEEN.Easing.Linear.None)
+                .start();
+            new TWEEN.Tween(camera.position)
+                .to({
+                    x: px,
+                    y: py,
+                    z: pz
+                }, 1000)
+                .easing(TWEEN.Easing.Linear.None)
+                .start();
         }
     </script>
 </body>
