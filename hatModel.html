@@ -150,7 +150,11 @@
         camera.lookAt(scene.position);
 
         // 创建一个webGL对象
-        let renderer = new THREE.WebGLRenderer();
+        let renderer = new THREE.WebGLRenderer({
+            //增加下面两个属性，可以抗锯齿
+            antialias: true,
+            alpha: true
+        });
         renderer.setSize(width, height); // 设置渲染区域尺寸
         renderer.setClearColor(0x333333, 1); // 设置颜色透明度
         document.body.appendChild(renderer.domElement);
