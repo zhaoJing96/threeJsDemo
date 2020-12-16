@@ -187,7 +187,7 @@
 
         // 投影相机
         let camera = new THREE.PerspectiveCamera(45, k, 0.1, 1000);
-        camera.position.set(2, 2, 8);
+        camera.position.set(2, 0, 8);
         camera.lookAt(scene.position);
 
         // 创建一个webGL对象
@@ -380,7 +380,7 @@
             // 导入GlTF模型
             let gltfLoader = new THREE.GLTFLoader();
             gltfLoader.setPath('./images/');
-            gltfLoader.load('ZN_Mao.glb', (gltf) => {
+            gltfLoader.load('ZN_Mao(2).glb', (gltf) => {
                 gltf.scene.traverse(obj => {
                     // 存储模型小零件初始颜色、位置、名称
                     let modelObj = null;
@@ -404,7 +404,7 @@
         // 设置灯光
         function setLight() {
             //- 添加平行光光源
-            let lightTop = new THREE.DirectionalLight(0xffffff, 0.1);
+            let lightTop = new THREE.DirectionalLight(0xffffff, 0.4);
             let lightBottom = new THREE.DirectionalLight(0xffffff, 0.3);
             let lightLeftTop = new THREE.DirectionalLight(0xffffff, 0.2);
             let lightLeft = new THREE.DirectionalLight(0xffffff, 0.25);
@@ -418,7 +418,13 @@
             let lightAfterTop = new THREE.DirectionalLight(0xffffff, 0.2);
             let lightAfter = new THREE.DirectionalLight(0xffffff, 0.25);
             let lightAfterBottom = new THREE.DirectionalLight(0xffffff, 0.2);
-            let lightCenter = new THREE.PointLight(0xffffff, 0.2);
+
+            let lightBottomQ = new THREE.PointLight(0xffffff, 0.3);
+            let lightBottomH = new THREE.PointLight(0xffffff, 0.3);
+            let lightBottomZ = new THREE.PointLight(0xffffff, 0.3);
+            let lightBottomR = new THREE.PointLight(0xffffff, 0.3);
+
+            let lightCenter = new THREE.PointLight(0xffffff, 0.1);
             lightTop.position.set(0, 10, 0);
             lightBottom.position.set(0, -5, 0);
             lightLeftTop.position.set(10, 3, 0);
@@ -433,7 +439,12 @@
             lightAfterTop.position.set(0, 5, 20);
             lightAfter.position.set(0, 0, 20);
             lightAfterBottom.position.set(0, -5, 20);
-            lightCenter.position.set(0, 10, 20);
+            lightCenter.position.set(0, -10, 0);
+
+            lightBottomQ.position.set(0, -10, -10);
+            lightBottomH.position.set(0, -10, 10);
+            lightBottomZ.position.set(-10, -10, 0);
+            lightBottomR.position.set(10, -10, 0);
             scene.add(lightTop);
             scene.add(lightBottom);
             scene.add(lightLeftTop);
@@ -449,6 +460,10 @@
             scene.add(lightAfter);
             scene.add(lightAfterBottom);
             scene.add(lightCenter);
+            // scene.add(lightBottomQ);
+            // scene.add(lightBottomH);
+            // scene.add(lightBottomZ);
+            // scene.add(lightBottomR);
         }
         // 分解、合并动画
         function resolveAnimation(name, posi, type) {
