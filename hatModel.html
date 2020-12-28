@@ -178,7 +178,6 @@
         // let lightLoader = new THREE.GLTFLoader();
         // lightLoader.setPath('./images/');
         // lightLoader.load('ZN_Mao_Deng(1).glb', (res) => {
-        //     console.log(res);
         //     scene.add(res.scene);
         // });
         // let lightCenter = new THREE.PointLight(0xffffff, 0.5);
@@ -228,7 +227,6 @@
         document.body.addEventListener('click', selectHandle, false);
         // 监听鼠标事件
         let controls = new THREE.OrbitControls(camera, css2DRenderer.domElement);
-
         // 获取相机初始化位置、旋转角度，控制器当前角度
         tx = controls.target.x;
         ty = controls.target.y;
@@ -273,7 +271,7 @@
                             curColor = '#0000ff';
                             break;
                         case 'white':
-                            curColor = '#ffffff';
+                            curColor = '#777777';
                             break;
                     }
                     // 判断模型是否存在，设置模型材质颜色
@@ -380,7 +378,7 @@
             // 导入GlTF模型
             let gltfLoader = new THREE.GLTFLoader();
             gltfLoader.setPath('./images/');
-            gltfLoader.load('ZN_Mao(2).glb', (gltf) => {
+            gltfLoader.load('ZN_Mao.glb', (gltf) => {
                 gltf.scene.traverse(obj => {
                     // 存储模型小零件初始颜色、位置、名称
                     let modelObj = null;
@@ -403,68 +401,91 @@
         }
         // 设置灯光
         function setLight() {
-            //- 添加平行光光源
-            let lightTop = new THREE.DirectionalLight(0xffffff, 0.4);
-            let lightBottom = new THREE.DirectionalLight(0xffffff, 0.3);
-            let lightLeftTop = new THREE.DirectionalLight(0xffffff, 0.2);
-            let lightLeft = new THREE.DirectionalLight(0xffffff, 0.25);
-            let lightLeftBottom = new THREE.DirectionalLight(0xffffff, 0.2);
-            let lightRightTop = new THREE.DirectionalLight(0xffffff, 0.2);
-            let lightRight = new THREE.DirectionalLight(0xffffff, 0.25);
-            let lightRightBottom = new THREE.DirectionalLight(0xffffff, 0.2);
-            let lightBeforeTop = new THREE.DirectionalLight(0xffffff, 0.2);
-            let lightBefore = new THREE.DirectionalLight(0xffffff, 0.25);
-            let lightBeforeBottom = new THREE.DirectionalLight(0xffffff, 0.2);
-            let lightAfterTop = new THREE.DirectionalLight(0xffffff, 0.2);
-            let lightAfter = new THREE.DirectionalLight(0xffffff, 0.25);
-            let lightAfterBottom = new THREE.DirectionalLight(0xffffff, 0.2);
-
-            let lightBottomQ = new THREE.PointLight(0xffffff, 0.3);
-            let lightBottomH = new THREE.PointLight(0xffffff, 0.3);
-            let lightBottomZ = new THREE.PointLight(0xffffff, 0.3);
-            let lightBottomR = new THREE.PointLight(0xffffff, 0.3);
-
-            let lightCenter = new THREE.PointLight(0xffffff, 0.1);
-            lightTop.position.set(0, 10, 0);
-            lightBottom.position.set(0, -5, 0);
-            lightLeftTop.position.set(10, 3, 0);
+            let lightTop = new THREE.DirectionalLight(0xffffff, 0.5);
+            let lightLeft = new THREE.DirectionalLight(0xffffff, 0.6);
+            let lightRight = new THREE.DirectionalLight(0xffffff, 0.6);
+            let lightBefore = new THREE.DirectionalLight(0xffffff, 0.6);
+            let lightAfter = new THREE.DirectionalLight(0xffffff, 0.6);
+            let spotLightRight = new THREE.SpotLight(0xffffff, 1);
+            let spotLightleft = new THREE.SpotLight(0xffffff, 1);
+            let spotLightBefore = new THREE.SpotLight(0xffffff, 1);
+            let spotLightAfter = new THREE.SpotLight(0xffffff, 1);
+            let spotLightTop = new THREE.SpotLight(0xffffff, 1);
+            let spotLightBottom = new THREE.SpotLight(0xffffff, 0.3);
+            //光的位置
+            lightTop.position.set(1, 10, 0);
             lightLeft.position.set(10, 0, 0);
-            lightLeftBottom.position.set(10, -3, 0);
-            lightRightTop.position.set(-10, 3, 0);
             lightRight.position.set(-10, 0, 0);
-            lightRightBottom.position.set(-10, -3, 0);
-            lightBeforeTop.position.set(0, 5, -20);
-            lightBefore.position.set(0, 0, -20);
-            lightBeforeBottom.position.set(0, -5, -20);
-            lightAfterTop.position.set(0, 5, 20);
-            lightAfter.position.set(0, 0, 20);
-            lightAfterBottom.position.set(0, -5, 20);
-            lightCenter.position.set(0, -10, 0);
+            lightBefore.position.set(0, 0, 20);
+            lightAfter.position.set(0, 0, -20);
+            spotLightRight.position.set(10, -3, 0);
+            spotLightleft.position.set(-10, -3, 0);
+            spotLightBefore.position.set(0, -3, 10);
+            spotLightAfter.position.set(0, -3, -10);
+            spotLightTop.position.set(0, 20, 0);
+            spotLightBottom.position.set(0, -20, 0);
 
-            lightBottomQ.position.set(0, -10, -10);
-            lightBottomH.position.set(0, -10, 10);
-            lightBottomZ.position.set(-10, -10, 0);
-            lightBottomR.position.set(10, -10, 0);
             scene.add(lightTop);
-            scene.add(lightBottom);
-            scene.add(lightLeftTop);
             scene.add(lightLeft);
-            scene.add(lightLeftBottom);
-            scene.add(lightRightTop);
             scene.add(lightRight);
-            scene.add(lightRightBottom);
-            scene.add(lightBeforeTop);
             scene.add(lightBefore);
-            scene.add(lightBeforeBottom);
-            scene.add(lightAfterTop);
             scene.add(lightAfter);
-            scene.add(lightAfterBottom);
-            scene.add(lightCenter);
-            // scene.add(lightBottomQ);
-            // scene.add(lightBottomH);
-            // scene.add(lightBottomZ);
-            // scene.add(lightBottomR);
+            scene.add(spotLightRight);
+            scene.add(spotLightleft);
+            scene.add(spotLightBefore);
+            scene.add(spotLightAfter);
+            scene.add(spotLightTop);
+            scene.add(spotLightBottom);
         }
+        // function setLight1() {
+        //     //- 添加平行光光源
+        //     let lightTop = new THREE.DirectionalLight(0xffffff, 0.6);
+        //     let lightBottom = new THREE.DirectionalLight(0xffffff, 0.2);
+        //     let lightLeftTop = new THREE.DirectionalLight(0xffffff, 1);
+        //     let lightLeft = new THREE.DirectionalLight(0xffffff, 0.2);
+        //     let lightLeftBottom = new THREE.DirectionalLight(0xffffff, 0.2);
+        //     let lightRightTop = new THREE.DirectionalLight(0xffffff, 1);
+        //     let lightRight = new THREE.DirectionalLight(0xffffff, 0.2);
+        //     let lightRightBottom = new THREE.DirectionalLight(0xffffff, 0.2);
+        //     let lightBeforeTop = new THREE.DirectionalLight(0xffffff, 0.5);
+        //     let lightBefore = new THREE.DirectionalLight(0xffffff, 0.4);
+        //     let lightBeforeBottom = new THREE.DirectionalLight(0xffffff, 0.8);
+        //     let lightAfterTop = new THREE.DirectionalLight(0xffffff, 0.5);
+        //     let lightAfter = new THREE.DirectionalLight(0xffffff, 0.4);
+        //     let lightAfterBottom = new THREE.DirectionalLight(0xffffff, 0.5);
+
+        //     let lightCenter = new THREE.PointLight(0xffffff, 0.1);
+        //     lightTop.position.set(0, 10, 0);
+        //     lightBottom.position.set(0, -5, 0);
+        //     lightLeftTop.position.set(10, 3, 0);
+        //     lightLeft.position.set(10, 0, 0);
+        //     lightLeftBottom.position.set(10, -3, 0);
+        //     lightRightTop.position.set(-10, 3, 0);
+        //     lightRight.position.set(-10, 0, 0);
+        //     lightRightBottom.position.set(-10, -3, 0);
+        //     lightBeforeTop.position.set(0, 5, -20);
+        //     lightBefore.position.set(0, 0, -20);
+        //     lightBeforeBottom.position.set(0, -5, -20);
+        //     lightAfterTop.position.set(0, 5, 20);
+        //     lightAfter.position.set(0, 0, 20);
+        //     lightAfterBottom.position.set(0, -5, 20);
+        //     lightCenter.position.set(0, -10, 0);
+        //     scene.add(lightTop);
+        //     scene.add(lightBottom);
+        //     scene.add(lightLeftTop);
+        //     scene.add(lightLeft);
+        //     scene.add(lightLeftBottom);
+        //     scene.add(lightRightTop);
+        //     scene.add(lightRight);
+        //     scene.add(lightRightBottom);
+        //     scene.add(lightBeforeTop);
+        //     scene.add(lightBefore);
+        //     scene.add(lightBeforeBottom);
+        //     scene.add(lightAfterTop);
+        //     scene.add(lightAfter);
+        //     scene.add(lightAfterBottom);
+        //     scene.add(lightCenter);
+        // }
         // 分解、合并动画
         function resolveAnimation(name, posi, type) {
             let time = 0;
