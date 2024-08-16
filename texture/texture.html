@@ -30,7 +30,7 @@
         // let geometry = new THREE.CylinderGeometry(60, 60, 25, 25); //圆柱
         // TextureLoader创建一个纹理加载器对象，可以加载图片作为几何体纹理
         let textureLoader = new THREE.TextureLoader();
-        let texture = textureLoader.load('./images/map.jpg');
+        let texture = textureLoader.load('../images/map.jpg');
         // let texture = textureLoader.load('./images/normal.jpg');
         // RepeatWrapping，纹理将简单地重复到无穷大。 MirroredRepeatWrapping， 纹理将重复到无穷大，在每次重复时将进行镜像。
         texture.wrapS = THREE.RepeatWrapping; //水平方向如何包裹
@@ -54,7 +54,7 @@
 
         // 图片加载器
         let imageLoader = new THREE.ImageLoader();
-        let img = imageLoader.load('./images/img1.png');
+        let img = imageLoader.load('../images/img1.png');
         // 生成纹理
         let texture1 = new THREE.Texture(img);
         // 下次使用纹理时触发更新
@@ -80,9 +80,10 @@
 
         let renderer = new THREE.WebGLRenderer();
         renderer.setSize(width, height);
-        renderer.setClearColor(0xffffff, 1) //设置背景颜色
+        renderer.setClearColor(0x000000, 1) //设置背景颜色
         document.body.appendChild(renderer.domElement);
         // renderer.render(scene, camera); // 渲染到场景中
+        let controls = new THREE.OrbitControls(camera, renderer.domElement);
         // 渲染到HTML文档中
         function renderFn() {
             renderer.render(scene, camera); // 渲染到场景中
